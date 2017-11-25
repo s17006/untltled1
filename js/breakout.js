@@ -53,7 +53,7 @@ class Breakout {
             options.paddle.color);
 
         this.paddle.setPosition(Breakout.width / 2 ,
-            Breakout.height * 8 / 9);
+            Breakout.height /2);
         this.paddle.setSpeed(Breakout.width / 100);
 
         //ボールの初期化
@@ -275,8 +275,8 @@ class Ball{
             const br = this.x + this.radius;
             const bt = this.y - this.radius;
             const bb = this.y + this.radius;
-            if (points[0].x < br || bl < points[1].x){
-                if (points[0].y < bb || bt < points[2].y){
+            if (points[0].x < br && bl < points[1].x){
+                if (points[0].y < bb && bt < points[2].y){
                     isCollision = true;
                     target.hit();
                 }
