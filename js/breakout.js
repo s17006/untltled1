@@ -252,7 +252,7 @@ class Ball{
         this.y += this.dy;
 
         if (this.collision()){
-            this.dy *= -1;
+            this.dy *= -1
         }
     }
 
