@@ -1,6 +1,6 @@
 window.addEventListener('DOMContentLoaded',() => {
     console.log("breakout initialiring...");
-    //　定数値
+
     //　初期化
     const canvas = document.getElementById('board');
     new Breakout({
@@ -35,6 +35,20 @@ class Breakout {
     static get height(){
         return Breakout.gameHight;
     }
+
+    static get isGameOver(){
+        return Breakout._game_over === true;
+    }
+
+    static setGameOver(f) {
+        if (f instanceof Boolean){
+            Breakout._game_over = f;
+            return;
+        }
+        Breakout._game_over = true;
+    }
+
+
 
     constructor(options) {
         //受け取ったパラメーターをプロパティに保存
@@ -98,7 +112,19 @@ class Breakout {
             this.paddle.moveRight();
 
         }
-        this.ball.draw(this.context);
+        if (Breakout.isGameOver){
+            //Gameoverの表示
+            this.context.save();
+
+            this.context.fillStyle = "red";
+            this.context.font = "48pt Arial";
+            this.context.textAlign = "center";
+            this.context.strokeText("GameOver",Breakout.width / 2 ,Breakout.height / 2);
+
+            this.context.restore();
+        } else {
+            this.ball.draw(this.context);
+        }
         this.paddle.draw(this.context);
     }
 }
@@ -247,14 +273,19 @@ class Ball{
        this.dx = Math.cos(rad) * speed;
        this.dy = Math.sin(rad) * speed;
     }
+
+
+
+
     move(){
         this.x += this.dx;
         this.y += this.dy;
 
-        if (this.collision()){
+        if (this.collision()) {
             this.dy *= -1;
         }
     }
+
 
 
     collision(){
@@ -288,6 +319,24 @@ class Ball{
         return isCollision;
     }
 
+    /**
+     *反射角度を時計回りに変える(１度)
+     */
+    changeAngle(ccw = false){
+        let theta = Math.atan(this.dy / this.dx);
+        const speed = this.dx / Math.cos(theta);
+        if (ccw) {
+            theta -= Math.PI / 180;
+        }else{
+            theta += Math.PI / 180;
+        }
+        if(theta <= 0.08726646259971647 || thetaa >= 3.0543261909900763){
+            return;
+        }
+        this.dx = Math.cos(theta) * speed;
+        this.dy = Math.sin(theta) * speed;
+    }
+
     fixPosition() {
         const left =this.x - this.radius;
         if (left < 0){
@@ -306,10 +355,9 @@ class Ball{
             this.x -= right - Breakout.width;
             this.reflectionX();
         }
-        const bottom = this.y + this.radius;
-        if(bottom > Breakout.height) {
-            this.y -= bottom - Breakout.height;
-            this.reflectionY();
+
+        if(top > Breakout.height){
+            Breakout.setGameOver();
         }
     }
 
