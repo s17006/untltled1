@@ -119,7 +119,7 @@ class Breakout {
             this.context.fillStyle = "red";
             this.context.font = "48pt Arial";
             this.context.textAlign = "center";
-            this.context.strokeText("GameOver",Breakout.width / 2 ,Breakout.height / 2);
+            this.context.fillText("GameOver",Breakout.width / 2 ,Breakout.height / 2);
 
             this.context.restore();
         } else {
@@ -231,7 +231,20 @@ class Paddle extends Entity {
         if (right > Breakout.width){
             this.x -= right - Breakout.width;
         }
+
     }
+    hit(ball){
+        //　ボールがpaddleの右４分の１にある
+        if (this.x + this.width / 4 < ball.x) {
+            ball.changeAngle();
+            return;
+        }
+        //　ボールがpaddleの左４分の１にある
+        if (this.x - this.width / 4 > ball.x) {
+            ball.changeAngle(true);
+        }
+    }
+
 }
 class Ball{
     constructor(radius, color){
@@ -298,7 +311,7 @@ class Ball{
                     Math.pow(this.x - point.x, 2) + Math.pow(this.y - point.y, 2));
                 if (a <= this.radius) {
                     isCollision = true;
-                    target.hit();
+                    target.hit(this);
                 }
             },this);
             //各側面のチェック
@@ -310,7 +323,7 @@ class Ball{
                 if (points[0].y < bb && bt < points[2].y){
                     isCollision = true;
                     this.y -= bb - points[0].y;
-                    target.hit();
+                    target.hit(this);
                 }
             }
 
@@ -326,11 +339,11 @@ class Ball{
         let theta = Math.atan(this.dy / this.dx);
         const speed = this.dx / Math.cos(theta);
         if (ccw) {
-            theta -= Math.PI / 180;
+            theta -= Math.PI * 5 / 180;
         }else{
-            theta += Math.PI / 180;
+            theta += Math.PI * 5 / 180;
         }
-        if(theta <= 0.08726646259971647 || thetaa >= 3.0543261909900763){
+        if(theta <= -0.7853981634 || theta >= 0.5235987756){
             return;
         }
         this.dx = Math.cos(theta) * speed;
