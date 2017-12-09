@@ -1,157 +1,164 @@
-window.addEventListener('DOMContentLoaded',() => {
-    console.log("breakout initialiring...");
-
-    //　初期化
+window.addEventListener('DOMContentLoaded', () => {
+    // 初期化
     const canvas = document.getElementById('board');
     new Breakout({
         canvas: canvas,
-        interval: 1000 / 60,
+        interval: 1000 / 60,    // 60 FPS
         paddle: {
             width: 100,
-            height:10,
-            color: '#4169e1'
+            height: 10,
+            color: '#4169e1'    // 'royalblue'
         },
         ball: {
             radius: 5,
-            color: 'white'
+            color: 'white'      // '#FFffFF'
+        },
+        block: {
+            width: 80,
+            height: 20
         }
     });
-
 });
 
 class Breakout {
-    static set width(w){
+    static set width(w) {
         Breakout.gameWidth = w;
     }
 
-    static get width(){
+    static get width() {
         return Breakout.gameWidth;
     }
 
-    static set height(h){
+    static set height(h) {
         Breakout.gameHight = h;
     }
 
-    static get height(){
+    static get height() {
         return Breakout.gameHight;
     }
 
-    static get isGameOver(){
+    static get isGameOver() {
         return Breakout._game_over === true;
     }
 
     static setGameOver(f) {
-        if (f instanceof Boolean){
+        if (f instanceof Boolean) {
             Breakout._game_over = f;
             return;
         }
         Breakout._game_over = true;
     }
 
-
-
     constructor(options) {
-        //受け取ったパラメーターをプロパティに保存
+        // 受け取ったパラメータをプロパティに保存
         this.canvas = options.canvas;
         this.context = this.canvas.getContext('2d');
-        //ゲーム画面のサイズを取得
+        // ゲーム画面のサイズを取得
         Breakout.width = this.canvas.width;
         Breakout.height = this.canvas.height;
-        //内部で使用するプロパティの初期化
+
+        // 内部で使用するプロパティの初期化
         this.leftKey = false;
         this.rightKey = false;
-        //paddleの初期化
+
+        // Paddleの初期化
         this.paddle = new Paddle(
             options.paddle.width,
             options.paddle.height,
             options.paddle.color);
 
-        this.paddle.setPosition(Breakout.width / 2 ,
+        this.paddle.setPosition(Breakout.width / 2,
             Breakout.height * 8 / 9);
         this.paddle.setSpeed(Breakout.width / 100);
 
-        //ボールの初期化
+        // ブロックマネージャの初期化
+        this.blockManager = new BlockManager(
+            options.block.width, options.block.height);
+        this.blockManager.stage1();
+
+        // ボールの初期化
         this.ball = new Ball(
             options.ball.radius, options.ball.color);
         this.ball.setPosition(Breakout.width / 2, Breakout.height / 2);
-        //ボールに当たり判定シてもらうお願い
+
+        // ボールに当たり判定してもらうおねがい
         this.ball.addTarget(this.paddle);
 
-        //描画のためのタイマーセット
+
+        // 描画のためのタイマーセット
         setInterval(this.draw.bind(this), options.interval);
 
-
-        window.addEventListener('keydown',this.keydown.bind(this));
-        window.addEventListener('keyup',this.keyup.bind(this));
+        window.addEventListener('keydown', this.keydown.bind(this));
+        window.addEventListener('keyup', this.keyup.bind(this));
     }
 
-    keydown(evt){
-        if(evt.keyCode === 37 /* 左キー */){
+    keydown(evt) {
+        if (evt.code === 'ArrowLeft' /* ひだりキー */) {
             this.leftKey = true;
-        }else if (evt.keyCode === 39 /*右キー*/){
+        } else if (evt.code === 'ArrowRight' /* みぎキー */) {
             this.rightKey = true;
-        }else if (evt.code === 'Space'){
-            this.ball.setSpeed(5,45);
+        } else if (evt.code === 'Space') {
+            // debug
+            this.ball.setSpeed(5, 135);
         }
     }
+
     keyup(evt) {
-        if(evt.keyCode === 37 /* 左キー */){
+        if (evt.code === 'ArrowLeft' /* ひだりキー */) {
             this.leftKey = false;
-        }else if (evt.keyCode === 39 /*右キー*/){
+        } else if (evt.code === 'ArrowRight' /* みぎキー */) {
             this.rightKey = false;
         }
     }
-    draw() {
-        this.context.clearRect(0,0,Breakout.width, Breakout.height);
-        if(this.leftKey) {
-            this.paddle.moveLeft();
-            console.log('leftKey');
-        }
-        if (this.rightKey){
-            console.log('rightKey');
-            this.paddle.moveRight();
 
+    draw() {
+        this.context.clearRect(0, 0, Breakout.width, Breakout.height);
+        if (this.leftKey) {
+            this.paddle.moveLeft();
         }
-        if (Breakout.isGameOver){
-            //Gameoverの表示
+        if (this.rightKey) {
+            this.paddle.moveRight();
+        }
+        if (Breakout.isGameOver) {
             this.context.save();
 
             this.context.fillStyle = "red";
             this.context.font = "48pt Arial";
             this.context.textAlign = "center";
-            this.context.fillText("GameOver",Breakout.width / 2 ,Breakout.height / 2);
+            this.context.fillText("GameOver", Breakout.width / 2, Breakout.height / 2);
 
             this.context.restore();
         } else {
             this.ball.draw(this.context);
         }
         this.paddle.draw(this.context);
+        this.blockManager.draw(this.context);
     }
 }
 
-class Entity{
-    constructor(){
+class Entity {
+    constructor() {
         this.x = 0;
         this.y = 0;
         this.width = 0;
         this.height = 0;
     }
-    getCornerPoints(){
+
+    getCornerPoints() {
         return [
-            {x:this.x - this.width / 2, y:this.y - this.height / 2},
-            {x:this.x + this.width / 2, y:this.y - this.height / 2},
-            {x:this.x + this.width / 2, y:this.y + this.height / 2},
-            {x:this.x - this.width / 2, y:this.y + this.height / 2},
+            {x: this.x - this.width / 2, y: this.y - this.height / 2},
+            {x: this.x + this.width / 2, y: this.y - this.height / 2},
+            {x: this.x + this.width / 2, y: this.y + this.height / 2},
+            {x: this.x - this.width / 2, y: this.y + this.height / 2}
         ]
     }
 
-    hit(){
-
+    hit(ball) {
     }
 }
 
 class Paddle extends Entity {
-    constructor(width,height,color) {
+    constructor(width, height, color) {
         super();
         this.width = width;
         this.height = height;
@@ -164,14 +171,12 @@ class Paddle extends Entity {
     /**
      * 描画処理するメソッド
      *
-     * @param canvas
+     * @param context CanvasRenderingContext2D
      */
-
-
     draw(context) {
         context.save();
 
-        context.translate(this.x,this.y);
+        context.translate(this.x, this.y);
         context.fillStyle = this.color;
         context.fillRect(-(this.width / 2), -(this.height / 2),
             this.width, this.height);
@@ -184,34 +189,30 @@ class Paddle extends Entity {
      * @param x
      * @param y
      */
-
-    setPosition(x,y) {
+    setPosition(x, y) {
         this.x = x;
         this.y = y;
         this.fixPosition();
     }
 
     /**
-     * 移動スピードをしていする
+     * 移動スピードを指定する
      * @param speed
      */
-
     setSpeed(speed) {
         this.speed = speed;
-
     }
 
     /**
-     * 左に移動する
+     * ひだりへ移動する
      */
-
     moveLeft() {
         this.x -= this.speed;
         this.fixPosition();
     }
 
     /**
-     * 右に移動する
+     * みぎへ移動する
      */
     moveRight() {
         this.x += this.speed;
@@ -220,77 +221,147 @@ class Paddle extends Entity {
 
     /**
      * はみ出ないように位置を調整する
-     *
      */
     fixPosition() {
-        const left =this.x - (this.width / 2);
-        if (left < 0){
+        const left = this.x - (this.width / 2);
+        if (left < 0) {
             this.x += Math.abs(left);
         }
+
         const right = this.x + (this.width / 2);
-        if (right > Breakout.width){
+        if (right > Breakout.width) {
             this.x -= right - Breakout.width;
         }
-
     }
-    hit(ball){
-        //　ボールがpaddleの右４分の１にある
+
+    /**
+     * 当たったあとのなにか
+     */
+    hit(ball) {
+        // ボールがPaddleの右4分の1にあるか
         if (this.x + this.width / 4 < ball.x) {
             ball.changeAngle();
             return;
         }
-        //　ボールがpaddleの左４分の１にある
+        // ボールがPaddleの左4分の1にあるか
         if (this.x - this.width / 4 > ball.x) {
             ball.changeAngle(true);
         }
     }
-
 }
-class Ball{
-    constructor(radius, color){
+
+class Block extends Entity {
+    constructor(x, y, width, height, color) {
+        super();
+        this.width = width;
+        this.height = height;
+        this.color = color;
+        this.x = x;
+        this.y = y;
+    }
+
+    /**
+     * 描画処理するメソッド
+     *
+     * @param context CanvasRenderingContext2D
+     */
+    draw(context) {
+        context.save();
+
+        context.translate(this.x, this.y);
+        context.fillStyle = this.color;
+        context.fillRect(-(this.width / 2), -(this.height / 2),
+            this.width, this.height);
+
+        context.restore();
+    }
+
+    /**
+     * ボールと当たったので消えます
+     */
+    hit(ball) {
+        ball.removeTarget(this);
+        // 描画しないようにする
+    }
+}
+
+class BlockManager {
+    constructor(baseWidth, baseHeight) {
+        this.baseWidth = baseWidth;
+        this.baseHeight = baseHeight;
+        this.blockList = [];
+    }
+
+    stage1() {
+        for (let x = 0; x < 6; x++) {
+            for (let y = 0; y < 6; y++) {
+                this.blockList.push(
+                    new Block(this.baseWidth * (x + 1)
+                        , this.baseHeight * (y + 1),
+                        this.baseWidth, this.baseHeight, "hotpink")
+                )
+            }
+        }
+    }
+
+    draw(context) {
+        this.blockList.forEach((block) => {
+            block.draw(context);
+        }, this);
+    }
+}
+
+class Ball {
+    constructor(radius, color) {
         this.radius = radius;
         this.color = color;
         this.x = 0;
         this.y = 0;
         this.dx = 0;
         this.dy = 0;
-        this.targetList =[];
-
+        this.targetList = [];
     }
 
     /**
-     * 当たり判定するメソッドをリストに追加する
-     *
+     * 当たり判定をするリストに追加する
      */
-    addTarget(object){
-        if(Array.isArray(object)){
+    addTarget(object) {
+        if (Array.isArray(object)) {
             this.targetList.concat(object);
-        }else{
-            this.targetList.push(object)
+        } else {
+            this.targetList.push(object);
         }
+    }
+
+    removeTarget(object) {
+
     }
 
     /**
      * 位置を指定した場所へ移動する
+     * @param x
+     * @param y
      */
-    setPosition(x,y){
+    setPosition(x, y) {
         this.x = x;
         this.y = y;
     }
 
     /**
-     * 移動速度と向きをしていする
+     * 移動速度と向きを指定する
+     * @param speed
+     * @param direction
      */
-    setSpeed(speed,direction){
-       const rad = direction * Math.PI / 180;
-       this.dx = Math.cos(rad) * speed;
-       this.dy = Math.sin(rad) * speed;
+    setSpeed(speed, direction) {
+        const rad = direction * Math.PI / 180;
+        this.dx = Math.cos(rad) * speed;
+        this.dy = Math.sin(rad) * speed;
     }
 
-
-
-
-    move(){
+    /**
+     * 移動のメソッド
+     */
+    move() {
         this.x += this.dx;
         this.y += this.dy;
 
@@ -299,9 +370,10 @@ class Ball{
         }
     }
 
-
-
-    collision(){
+    /**
+     * 衝突判定のメソッド
+     */
+    collision() {
         let isCollision = false;
         this.targetList.forEach((target) => {
             // 角チェック
@@ -313,85 +385,102 @@ class Ball{
                     isCollision = true;
                     target.hit(this);
                 }
-            },this);
-            //各側面のチェック
+            }, this);
+
+            // 各側面のチェック
             const bl = this.x - this.radius;
             const br = this.x + this.radius;
             const bt = this.y - this.radius;
             const bb = this.y + this.radius;
-            if (points[0].x < br && bl < points[1].x){
-                if (points[0].y < bb && bt < points[2].y){
+            if (points[0].x < br && bl < points[1].x) {
+                if (points[0].y < bb && bt < points[2].y) {
                     isCollision = true;
                     this.y -= bb - points[0].y;
                     target.hit(this);
                 }
             }
 
-        },this);
+        }, this);
 
         return isCollision;
     }
 
     /**
-     *反射角度を時計回りに変える(１度)
+     * 反射角度を変える(5度)
      */
-    changeAngle(ccw = false){
+    changeAngle(ccw = false) {
         let theta = Math.atan(this.dy / this.dx);
         const speed = this.dx / Math.cos(theta);
         if (ccw) {
             theta -= Math.PI * 5 / 180;
-        }else{
+        } else {
             theta += Math.PI * 5 / 180;
         }
-        if(theta <= -0.7853981634 || theta >= 0.5235987756){
+
+        if (theta <= -0.7853981634 || theta >= 0.5235987756) {
+            // 変更なしにする
             return;
         }
         this.dx = Math.cos(theta) * speed;
         this.dy = Math.sin(theta) * speed;
     }
 
+    /**
+     * はみ出ないように位置を調整する
+     */
     fixPosition() {
-        const left =this.x - this.radius;
-        if (left < 0){
+        // 画面左側を超えてるか判定と座標修正
+        const left = this.x - this.radius;
+        if (left < 0) {
             this.x += Math.abs(left);
             this.reflectionX();
         }
+
+        // 画面上側を超えているか判定と座標修正
         const top = this.y - this.radius;
-        if(top < 0){
+        if (top < 0) {
             this.y += Math.abs(top);
             this.reflectionY();
         }
 
-        //画面右側を超えているか判定と座標修正
+        // 画面右側を超えているか判定と座標修正
         const right = this.x + this.radius;
-        if(right > Breakout.width){
+        if (right > Breakout.width) {
             this.x -= right - Breakout.width;
             this.reflectionX();
         }
 
-        if(top > Breakout.height){
+        // 画面下側を超えているか判定と一時的に座標修正
+        if (top > Breakout.height) {
             Breakout.setGameOver();
         }
     }
 
     /**
-     * 移動速度の左右反転
+     * 移動スピードの左右反転
      */
-    reflectionX(){
+    reflectionX() {
         this.dx *= -1;
     }
 
     /**
      * 移動スピードの上下反転
      */
-    reflectionY(){
+    reflectionY() {
         this.dy *= -1;
     }
-    draw(context){
+
+    /**
+     * 描画処理するメソッド
+     *
+     * @param context CanvasRenderingContext2D
+     */
+    draw(context) {
+        // 移動関連
         this.move();
         this.fixPosition();
 
-
+        // 描画関連
         context.save();
 
         context.fillStyle = this.color;
