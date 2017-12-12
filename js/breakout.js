@@ -83,6 +83,7 @@ class Breakout {
 
         // ボールに当たり判定してもらうおねがい
         this.ball.addTarget(this.paddle);
+        this.ball.addTarget(this.blockManager.blockList);
 
 
         // 描画のためのタイマーセット
@@ -251,11 +252,36 @@ class Paddle extends Entity {
 }
 
 class Block extends Entity {
-    constructor(x, y, width, height, color) {
+    static get colorSet() {
+        return [
+            ['Pink', 'Crimson'],
+            ['HotPink', 'DeepPink'],
+            ['Violet', 'Magenta'],
+            ['MediumOrchid', 'DarkOrchid'],
+            ['MediumSlateBlue', 'DarkSlateBlue'],
+            ['Blue', 'MidnightBlue'],
+            ['LightSkyBlue', 'DeepSkyBlue'],
+            ['Cyan', 'DarkCyan'],
+            ['MediumAquamarine', 'MediumSpringGreen'],
+            ['SpringGreen', 'SeaGreen'],
+            ['DarkGreen', 'LawnGreen'],
+            ['Yellow', 'Olive'],
+            ['Gold', 'DarkGoldenrod'],
+            ['Orange', 'DarkOrange'],
+            ['Coral', 'OrangeRed'],
+            ['Red', 'DarkRed'],
+        ];
+    }
+
+    constructor(manager, x, y, width, height, color) {
         super();
+        this.manager = manager;
         this.width = width;
         this.height = height;
-        this.color = color;
+        if (color >= Block.colorSet.length) {
+            color = Block.colorSet.length - 1;
+        }
+        this.color = Block.colorSet[color];
         this.x = x;
         this.y = y;
     }
@@ -269,9 +295,13 @@ class Block extends Entity {
         context.save();
 
         context.translate(this.x, this.y);
-        context.fillStyle = this.color;
+        context.fillStyle = this.color[0];
         context.fillRect(-(this.width / 2), -(this.height / 2),
             this.width, this.height);
+        context.lineWidth = 4;
+        context.strokeStyle = this.color[1];
+        context.strokeRect(-(this.width / 2) + 2, -(this.height / 2) + 2,
+            this.width - 4, this.height - 4);
 
         context.restore();
     }
@@ -281,7 +311,7 @@ class Block extends Entity {
      */
     hit(ball) {
         ball.removeTarget(this);
-        // 描画しないようにする
+        this.manager.removeTarget(this);
     }
 }
 
@@ -293,16 +323,21 @@ class BlockManager {
     }
 
     stage1() {
-        for (let x = 0; x < 6; x++) {
+        for (let x = 0; x < 7; x++) {
             for (let y = 0; y < 6; y++) {
+                const color = parseInt(Math.random() * Block.colorSet.length);
                 this.blockList.push(
-                    new Block(this.baseWidth * (x + 1)
+                    new Block(this, this.baseWidth * (x + 1)
                         , this.baseHeight * (y + 1),
-                        this.baseWidth, this.baseHeight, "hotpink")
-                )
+                        this.baseWidth, this.baseHeight, color));
             }
         }
     }
+
+    removeTarget(object) {
+        this.blockList.splice(this.blockList.indexOf(object), 1);
+    }
+
 
     draw(context) {
         this.blockList.forEach((block) => {
@@ -327,14 +362,16 @@ class Ball {
      */
     addTarget(object) {
         if (Array.isArray(object)) {
-            this.targetList.concat(object);
+            for (let i in object) {
+                this.targetList.push(object[i]);
+            }
         } else {
             this.targetList.push(object);
         }
     }
 
     removeTarget(object) {
-
+        this.targetList.splice(this.targetList.indexOf(object), 1);
     }
 
     /**
@@ -376,6 +413,9 @@ class Ball {
     collision() {
         let isCollision = false;
         this.targetList.forEach((target) => {
+            if (isCollision) {
+                return false;
+            }
             // 角チェック
             const points = target.getCornerPoints();
             points.forEach((point) => {
@@ -387,6 +427,9 @@ class Ball {
                 }
             }, this);
 
+            if (isCollision) {
+                return false;
+            }
             // 各側面のチェック
             const bl = this.x - this.radius;
             const br = this.x + this.radius;
@@ -395,11 +438,9 @@ class Ball {
             if (points[0].x < br && bl < points[1].x) {
                 if (points[0].y < bb && bt < points[2].y) {
                     isCollision = true;
-                    this.y -= bb - points[0].y;
                     target.hit(this);
                 }
             }
-
         }, this);
 
         return isCollision;
