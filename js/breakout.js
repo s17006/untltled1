@@ -402,7 +402,11 @@ class Ball {
         this.x += this.dx;
         this.y += this.dy;
 
-        if (this.collision()) {
+        const side = this.collision();
+        if ((side & 0x01) !== 0) {
+            this.dx *= -1;
+        }
+        if ((side & 0x02) !== 0) {
             this.dy *= -1;
         }
     }
@@ -411,25 +415,28 @@ class Ball {
      * 衝突判定のメソッド
      */
     collision() {
-        let isCollision = false;
+        let collideSide = 0;
         this.targetList.forEach((target) => {
-            if (isCollision) {
+            if (collideSide !== 0) {
                 return false;
             }
-            // 角チェック
-            const points = target.getCornerPoints();
-            points.forEach((point) => {
-                const a = Math.sqrt(
-                    Math.pow(this.x - point.x, 2) + Math.pow(this.y - point.y, 2));
-                if (a <= this.radius) {
-                    isCollision = true;
-                    target.hit(this);
-                }
-            }, this);
 
-            if (isCollision) {
-                return false;
-            }
+            const points = target.getCornerPoints();
+            // 角チェック
+            /*
+             points.forEach((point) => {
+             const a = Math.sqrt(
+             Math.pow(this.x - point.x, 2) + Math.pow(this.y - point.y, 2));
+             if (a <= this.radius) {
+             collideSide = 3;
+             target.hit(this);
+             }
+             }, this);
+             if (collideSide !== 0) {
+             return false;
+             }
+             */
+
             // 各側面のチェック
             const bl = this.x - this.radius;
             const br = this.x + this.radius;
@@ -437,14 +444,26 @@ class Ball {
             const bb = this.y + this.radius;
             if (points[0].x < br && bl < points[1].x) {
                 if (points[0].y < bb && bt < points[2].y) {
-                    isCollision = true;
                     target.hit(this);
+                    const dl = Math.abs(points[0].x - br);
+                    const dt = Math.abs(points[0].y - bb);
+                    const dr = Math.abs(points[1].x - bl);
+                    const db = Math.abs(points[2].y - bt);
+                    const min = Math.min(dl, dt, dr, db);
+
+                    if (min === dl || min === dr) {
+                        collideSide += 1;
+                    }
+                    if (min === dt || min === db) {
+                        collideSide += 2;
+                    }
                 }
             }
         }, this);
 
-        return isCollision;
+        return collideSide;
     }
+
 
     /**
      * 反射角度を変える(5度)
