@@ -1,5 +1,6 @@
 window.addEventListener('DOMContentLoaded', () => {
     // 初期化
+    const score = document.getElementById('score');
     const canvas = document.getElementById('board');
     new Breakout({
         canvas: canvas,
@@ -317,6 +318,10 @@ class Block extends Collideable {
     hit(ball) {
         ball.removeTarget(this);
         this.manager.removeTarget(this);
+        let Score = Number(score.textContent);
+        Score += 1;
+        document.getElementById("score").textContent = Score;
+
     }
 }
 
